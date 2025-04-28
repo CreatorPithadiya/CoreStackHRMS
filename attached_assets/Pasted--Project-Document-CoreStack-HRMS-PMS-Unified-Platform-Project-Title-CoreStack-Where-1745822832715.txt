@@ -1,0 +1,359 @@
+📘 Project Document: 
+CoreStack – HRMS + PMS Unified Platform
+🏷️ Project Title
+CoreStack – Where People and Projects Thrive
+
+🗭 Project Vision
+CoreStack is an integrated Human Resource Management System (HRMS) and Project Management System (PMS), designed to empower startups, agencies, and mid-sized enterprises to manage teams, track work, and streamline productivity — all under one intelligent dashboard.
+
+✨ Core Objectives
+Centralize employee and project management
+
+
+Track time, progress, performance, and attendance
+
+
+Improve team productivity with better visibility and collaboration
+
+
+Launch a scalable SaaS for future monetization
+
+
+
+🧩 Module Overview
+👥 HRMS Modules
+Employee Directory
+
+
+Attendance & Leave Management
+
+
+Payroll Engine (Phase 2)
+
+
+Recruitment (Optional)
+
+
+Performance Reviews
+
+
+
+📁 PMS Modules
+Project Dashboard
+
+
+Task Management
+
+
+Time Tracking
+
+
+Team Collaboration
+
+
+Client Portal (Optional)
+
+
+
+🛠️ Tech Stack
+🔹 Frontend
+React.js + Redux Toolkit
+
+
+Tailwind CSS + shadcn/ui
+
+
+Chart.js / Recharts (for dashboards)
+
+
+🔹 Backend
+Node.js + Express.js
+
+
+Prisma + PostgreSQL (or MongoDB)
+
+
+JWT-based authentication
+
+
+Role-based access control (RBAC)
+
+
+🔹 DevOps & Tools
+Docker for containerization
+
+
+GitHub + Actions for CI/CD
+
+
+Jira for task tracking
+
+
+
+📌 MVP Scope (Phase 1)
+User Auth (Admin, HR, Employee roles)
+
+
+Employee Directory
+
+
+Attendance Clock-in/Clock-out
+
+
+Leave Requests & Calendar
+
+
+Project and Task Management
+
+
+Dashboard Views for Admins & Employees
+
+
+
+🧑‍💻 Intern Task Breakdown (to be created in Jira)
+Setup backend with Express.js & Prisma
+
+
+Initialize PostgreSQL or MongoDB database
+
+
+Create reusable API response structure
+
+
+Setup global error handler and validation middleware
+
+
+Setup JWT-based user authentication
+
+
+Create login and register API endpoints
+
+
+Implement role-based access control middleware
+
+
+Setup Redux Toolkit with Auth Slice
+
+
+Create login and register UI forms
+
+
+Connect frontend auth UI with backend APIs
+
+
+Define Employee schema in Prisma
+
+
+Create CRUD APIs for employee management
+
+
+Build employee directory UI with listing
+
+
+Build single employee profile page
+
+
+Add edit functionality in employee profile
+
+
+Create organization chart component (basic structure)
+
+
+Define Attendance schema (clock-in/out, date, time)
+
+
+Create attendance logging API
+
+
+Build attendance component with clock-in/out buttons
+
+
+Show visual attendance logs in employee view
+
+
+Create HR calendar view with filter by month
+
+
+Define Leave Request schema
+
+
+Build leave request form and list for employees
+
+
+Create leave approval panel for HR
+
+
+Setup project schema with members, status, deadline
+
+
+Setup task schema with status, priority, progress
+
+
+Create project creation form (UI)
+
+
+Create task creation and assignment form
+
+
+Show task list with filters (assigned to, status, priority)
+
+
+Build Kanban board with drag-and-drop
+
+
+Add task detail modal with comment section
+
+
+Create reusable card and modal components
+
+
+Build Sidebar and Topbar layout
+
+
+Setup route-based dynamic sidebar highlighting
+
+
+Create notification toast system
+
+
+Add basic theme and responsiveness (Tailwind)
+
+
+Design dashboard widgets (attendance % etc.)
+
+
+Integrate Recharts/Chart.js for visuals
+
+
+Create dashboard data APIs for summary
+
+
+Build Admin panel page (list employees/projects)
+
+
+Add feature to promote/demote user roles
+
+
+Implement soft delete for employees
+
+
+
+🌱 Phase 2 Ideas (with Tasks)
+Define Payroll schema (basic)
+
+
+Create payroll form to input salary/bonuses
+
+
+Build payslip generation (PDF) with download
+
+
+Create payslip history component for employee
+
+
+Setup OKR schema
+
+
+Build OKR assignment form (manager to employee)
+
+
+Create OKR progress tracking with status updates
+
+
+Add OKR summary in employee profile view
+
+
+Create restricted login for clients
+
+
+Build project status view (read-only mode)
+
+
+Implement file/comment visibility toggle for client
+
+
+Design report dashboard UI
+
+
+Create time/task/payroll export APIs
+
+
+Add filter by date, user, department
+
+
+Setup Stripe integration with test keys
+
+
+Create plan selection UI (monthly/annually)
+
+
+Build usage tracking by user/project/org
+
+
+
+💸 Unique Advanced Feature Ideas (To Stand Out)
+Employee Mood Tracker + Sentiment Dashboard
+
+
+AI-Powered Performance Feedback Generator
+
+
+Gamified Task System with Rewards
+
+
+Workload Heatmap for Team Utilization
+
+
+Built-in Microlearning & Upskilling Portal
+
+
+Private AI Chatbot for HR Queries
+
+
+Shadow Login (Admin reads employee view for debugging)
+
+
+Red-Amber-Green (RAG) Project Progress System
+
+
+Behavioral Analytics for performance trends
+
+
+1-Click Compliance Reports (GDPR/ISO-ready)
+
+
+
+✅ Deliverables
+Working frontend (React + Redux)
+
+
+REST API with modular backend
+
+
+Database with seed data
+
+
+Fully responsive admin & employee dashboards
+
+
+Intern documentation + Git commits
+
+
+
+🗕️ Suggested Timeline (8-10 weeks)
+Week
+Focus
+1-2
+Auth, Project Setup, Design System
+3-4
+Employee Mgmt + Attendance
+5-6
+PMS Core (Projects + Tasks)
+7
+Dashboard + Charts + UI Polish
+8
+Testing, Docs, Deployment
+
+
+
+
