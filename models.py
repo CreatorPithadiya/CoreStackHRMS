@@ -76,7 +76,7 @@ class Employee(db.Model):
     # Relationships
     team_members = db.relationship('Employee', backref=db.backref('manager', remote_side=[id]), lazy='dynamic')
     attendance_records = db.relationship('Attendance', backref='employee', lazy=True)
-    leave_requests = db.relationship('LeaveRequest', backref='employee', lazy=True)
+    leave_requests = db.relationship('LeaveRequest', backref='employee', lazy=True, foreign_keys='LeaveRequest.employee_id')
     projects = db.relationship('ProjectMember', backref='employee', lazy=True)
     assigned_tasks = db.relationship('Task', backref='assignee', lazy=True, foreign_keys='Task.assignee_id')
     created_tasks = db.relationship('Task', backref='creator', lazy=True, foreign_keys='Task.created_by')
@@ -270,3 +270,451 @@ class TaskComment(db.Model):
     
     def __repr__(self):
         return f'<TaskComment {self.id} by {self.employee_id}>'
+
+# Phase 2 Models
+
+# Payroll related models
+class PayrollFrequency(enum.Enum):
+    MONTHLY = "monthly"
+    BIWEEKLY = "biweekly"
+    WEEKLY = "weekly"
+
+class SalaryType(enum.Enum):
+    FIXED = "fixed"
+    HOURLY = "hourly"
+    COMMISSION = "commission"
+
+class PayrollStatus(enum.Enum):
+    DRAFT = "draft"
+    PROCESSED = "processed"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+class Salary(db.Model):
+    __tablename__ = 'salaries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    base_salary = db.Column(db.Float, nullable=False)
+    salary_type = db.Column(db.Enum(SalaryType), default=SalaryType.FIXED, nullable=False)
+    frequency = db.Column(db.Enum(PayrollFrequency), default=PayrollFrequency.MONTHLY, nullable=False)
+    effective_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=True)  # Null means current
+    created_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', foreign_keys=[employee_id], backref='salaries')
+    creator = db.relationship('Employee', foreign_keys=[created_by], backref='salary_adjustments_made')
+    
+    def __repr__(self):
+        return f'<Salary {self.employee_id} {self.base_salary}>'
+
+class Payroll(db.Model):
+    __tablename__ = 'payrolls'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    period_start = db.Column(db.Date, nullable=False)
+    period_end = db.Column(db.Date, nullable=False)
+    base_salary = db.Column(db.Float, nullable=False)
+    overtime_hours = db.Column(db.Float, default=0, nullable=False)
+    overtime_amount = db.Column(db.Float, default=0, nullable=False)
+    bonus = db.Column(db.Float, default=0, nullable=False)
+    bonus_description = db.Column(db.Text, nullable=True)
+    deductions = db.Column(db.Float, default=0, nullable=False)
+    deduction_description = db.Column(db.Text, nullable=True)
+    tax = db.Column(db.Float, default=0, nullable=False)
+    net_amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Enum(PayrollStatus), default=PayrollStatus.DRAFT, nullable=False)
+    payment_date = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', foreign_keys=[employee_id], backref='payrolls')
+    creator = db.relationship('Employee', foreign_keys=[created_by], backref='payrolls_created')
+    
+    def __repr__(self):
+        return f'<Payroll {self.employee_id} for {self.period_start} to {self.period_end}>'
+
+# OKR related models
+class OKRStatus(enum.Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class OKRTimeframe(enum.Enum):
+    QUARTERLY = "quarterly"
+    ANNUAL = "annual"
+    CUSTOM = "custom"
+
+class OKR(db.Model):
+    __tablename__ = 'okrs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    timeframe = db.Column(db.Enum(OKRTimeframe), default=OKRTimeframe.QUARTERLY, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.Enum(OKRStatus), default=OKRStatus.DRAFT, nullable=False)
+    progress = db.Column(db.Integer, default=0, nullable=False)  # 0-100 percent
+    created_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', foreign_keys=[employee_id], backref='okrs')
+    creator = db.relationship('Employee', foreign_keys=[created_by], backref='okrs_created')
+    key_results = db.relationship('KeyResult', backref='objective', lazy=True, cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<OKR {self.title} for {self.employee_id}>'
+
+class KeyResult(db.Model):
+    __tablename__ = 'key_results'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    okr_id = db.Column(db.Integer, db.ForeignKey('okrs.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    target_value = db.Column(db.Float, nullable=False)
+    current_value = db.Column(db.Float, default=0, nullable=False)
+    unit = db.Column(db.String(50), nullable=True)  # e.g., "percent", "count", "dollars"
+    progress = db.Column(db.Integer, default=0, nullable=False)  # 0-100 percent
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<KeyResult {self.title} for OKR {self.okr_id}>'
+
+# Client Access related models
+class ClientAccess(db.Model):
+    __tablename__ = 'client_access'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    can_view_files = db.Column(db.Boolean, default=False, nullable=False)
+    can_view_tasks = db.Column(db.Boolean, default=True, nullable=False)
+    can_view_comments = db.Column(db.Boolean, default=False, nullable=False)
+    can_view_team = db.Column(db.Boolean, default=True, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    client = db.relationship('User', foreign_keys=[client_id], backref='client_access')
+    project = db.relationship('Project', backref='client_access')
+    creator = db.relationship('Employee', foreign_keys=[created_by], backref='client_access_granted')
+    
+    __table_args__ = (
+        db.UniqueConstraint('client_id', 'project_id', name='uix_client_project'),
+    )
+    
+    def __repr__(self):
+        return f'<ClientAccess client={self.client_id} project={self.project_id}>'
+
+# Advanced Features Models
+
+# Employee Mood Tracker
+class MoodType(enum.Enum):
+    VERY_HAPPY = "very_happy"
+    HAPPY = "happy"
+    NEUTRAL = "neutral"
+    UNHAPPY = "unhappy"
+    VERY_UNHAPPY = "very_unhappy"
+
+class MoodTracker(db.Model):
+    __tablename__ = 'mood_tracker'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    mood = db.Column(db.Enum(MoodType), nullable=False)
+    note = db.Column(db.Text, nullable=True)
+    date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='mood_records')
+    
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'date', name='uix_employee_mood_date'),
+    )
+    
+    def __repr__(self):
+        return f'<MoodTracker {self.employee_id} on {self.date} is {self.mood.value}>'
+
+# Performance Feedback
+class FeedbackType(enum.Enum):
+    PEER = "peer"
+    MANAGER = "manager"
+    SELF = "self"
+    AI_GENERATED = "ai_generated"
+
+class PerformanceFeedback(db.Model):
+    __tablename__ = 'performance_feedback'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)  # Null for AI generated
+    feedback_type = db.Column(db.Enum(FeedbackType), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    strengths = db.Column(db.Text, nullable=True)
+    areas_of_improvement = db.Column(db.Text, nullable=True)
+    rating = db.Column(db.Integer, nullable=True)  # 1-5 scale
+    is_draft = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', foreign_keys=[employee_id], backref='received_feedback')
+    reviewer = db.relationship('Employee', foreign_keys=[reviewer_id], backref='given_feedback')
+    
+    def __repr__(self):
+        return f'<PerformanceFeedback for {self.employee_id} by {self.reviewer_id or "AI"}>'
+
+# Gamified Task System
+class RewardType(enum.Enum):
+    POINTS = "points"
+    BADGE = "badge"
+    CERTIFICATE = "certificate"
+    BONUS = "bonus"
+
+class TaskReward(db.Model):
+    __tablename__ = 'task_rewards'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    reward_type = db.Column(db.Enum(RewardType), nullable=False)
+    points = db.Column(db.Integer, default=0, nullable=False)
+    name = db.Column(db.String(100), nullable=True)  # For badges/certificates
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    task = db.relationship('Task', backref='rewards')
+    
+    def __repr__(self):
+        return f'<TaskReward {self.reward_type.value} for Task {self.task_id}>'
+
+class EmployeeReward(db.Model):
+    __tablename__ = 'employee_rewards'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    task_reward_id = db.Column(db.Integer, db.ForeignKey('task_rewards.id'), nullable=False)
+    earned_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    claimed = db.Column(db.Boolean, default=False, nullable=False)
+    claimed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='rewards')
+    task_reward = db.relationship('TaskReward', backref='earned_by')
+    
+    def __repr__(self):
+        return f'<EmployeeReward {self.employee_id} earned {self.task_reward_id}>'
+
+# Workload Heatmap
+class WorkloadEntry(db.Model):
+    __tablename__ = 'workload_entries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    workload_percent = db.Column(db.Integer, nullable=False)  # 0-100
+    estimated_hours = db.Column(db.Float, nullable=False)
+    actual_hours = db.Column(db.Float, nullable=True)
+    stress_level = db.Column(db.Integer, nullable=True)  # 1-5 scale
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='workload_entries')
+    
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'date', name='uix_employee_workload_date'),
+    )
+    
+    def __repr__(self):
+        return f'<WorkloadEntry {self.employee_id} on {self.date} at {self.workload_percent}%>'
+
+# Learning/Upskilling Portal
+class LearningCourseStatus(enum.Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+class LearningCategory(db.Model):
+    __tablename__ = 'learning_categories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    courses = db.relationship('LearningCourse', backref='category', lazy=True)
+    
+    def __repr__(self):
+        return f'<LearningCategory {self.name}>'
+
+class LearningCourse(db.Model):
+    __tablename__ = 'learning_courses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('learning_categories.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    content = db.Column(db.Text, nullable=True)
+    estimated_hours = db.Column(db.Float, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('Employee', foreign_keys=[created_by], backref='created_courses')
+    
+    def __repr__(self):
+        return f'<LearningCourse {self.title}>'
+
+class EmployeeCourse(db.Model):
+    __tablename__ = 'employee_courses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('learning_courses.id'), nullable=False)
+    status = db.Column(db.Enum(LearningCourseStatus), default=LearningCourseStatus.NOT_STARTED, nullable=False)
+    progress = db.Column(db.Integer, default=0, nullable=False)  # 0-100 percent
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='courses')
+    course = db.relationship('LearningCourse', backref='enrolled_employees')
+    
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'course_id', name='uix_employee_course'),
+    )
+    
+    def __repr__(self):
+        return f'<EmployeeCourse {self.employee_id} taking {self.course_id}>'
+
+# AI Chatbot for HR Queries
+class HRQuery(db.Model):
+    __tablename__ = 'hr_queries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    query = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text, nullable=True)
+    is_private = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='hr_queries')
+    
+    def __repr__(self):
+        return f'<HRQuery {self.id} by {self.employee_id}>'
+
+# Shadow Login feature for Admins
+class ShadowLogin(db.Model):
+    __tablename__ = 'shadow_logins'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    target_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    actions_logged = db.Column(db.Text, nullable=True)  # JSON string of actions taken during shadow
+    
+    # Relationships
+    admin = db.relationship('Employee', foreign_keys=[admin_id], backref='shadow_logins_performed')
+    target = db.relationship('Employee', foreign_keys=[target_id], backref='shadow_logins_received')
+    
+    def __repr__(self):
+        return f'<ShadowLogin admin={self.admin_id} target={self.target_id}>'
+
+# RAG (Red-Amber-Green) Project Progress System
+class RAGStatus(enum.Enum):
+    RED = "red"
+    AMBER = "amber"
+    GREEN = "green"
+
+class RAGUpdate(db.Model):
+    __tablename__ = 'rag_updates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    status = db.Column(db.Enum(RAGStatus), nullable=False)
+    update_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    action_items = db.Column(db.Text, nullable=True)
+    updated_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    project = db.relationship('Project', backref='rag_updates')
+    updater = db.relationship('Employee', foreign_keys=[updated_by], backref='rag_updates_made')
+    
+    def __repr__(self):
+        return f'<RAGUpdate {self.project_id} is {self.status.value} on {self.update_date}>'
+
+# Behavioral Analytics
+class BehavioralMetric(db.Model):
+    __tablename__ = 'behavioral_metrics'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    metric_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    response_time_avg = db.Column(db.Float, nullable=True)  # In minutes
+    task_completion_rate = db.Column(db.Float, nullable=True)  # Percentage
+    communication_frequency = db.Column(db.Integer, nullable=True)  # Count of communications
+    collaboration_score = db.Column(db.Float, nullable=True)  # 0-100 scale
+    initiative_score = db.Column(db.Float, nullable=True)  # 0-100 scale
+    punctuality_score = db.Column(db.Float, nullable=True)  # 0-100 scale
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref='behavioral_metrics')
+    
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'metric_date', name='uix_employee_metric_date'),
+    )
+    
+    def __repr__(self):
+        return f'<BehavioralMetric for {self.employee_id} on {self.metric_date}>'
+
+# Compliance Report System
+class ComplianceReportType(enum.Enum):
+    GDPR = "gdpr"
+    ISO27001 = "iso27001"
+    SOC2 = "soc2"
+    HIPAA = "hipaa"
+    CUSTOM = "custom"
+
+class ComplianceReport(db.Model):
+    __tablename__ = 'compliance_reports'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.Enum(ComplianceReportType), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    generated_by = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data = db.Column(db.Text, nullable=False)  # JSON string of report data
+    pdf_url = db.Column(db.String(255), nullable=True)
+    
+    # Relationships
+    generator = db.relationship('Employee', foreign_keys=[generated_by], backref='generated_compliance_reports')
+    
+    def __repr__(self):
+        return f'<ComplianceReport {self.report_type.value} by {self.generated_by}>'
