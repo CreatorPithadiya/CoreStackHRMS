@@ -15,4 +15,8 @@ dependencies = [
     "flask-jwt-extended>=4.7.1",
     "flask-marshmallow>=1.3.0",
     "flask-cors>=5.0.1",
+    "seaborn>=0.13.2",
+    "pandas>=2.2.3",
+    "matplotlib>=3.10.1",
+    "stripe>=12.0.1",
 ]

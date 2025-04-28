@@ -81,7 +81,13 @@ def create_app():
     })
     
     # Import models to ensure they're registered with SQLAlchemy
-    from models import User, Employee, Department, Attendance, LeaveRequest, Project, Task, TaskComment
+    from models import (
+        User, Employee, Department, Attendance, LeaveRequest, Project, Task, TaskComment,
+        Payroll, Salary, OKR, KeyResult, ClientAccess,
+        MoodTracker, PerformanceFeedback, TaskReward, EmployeeReward, WorkloadEntry,
+        LearningCategory, LearningCourse, EmployeeCourse, HRQuery, ShadowLogin,
+        RAGUpdate, BehavioralMetric, ComplianceReport
+    )
     
     # Register blueprints
     from routes.auth import auth_bp
@@ -92,6 +98,17 @@ def create_app():
     from routes.tasks import tasks_bp
     from routes.dashboard import dashboard_bp
     
+    # Phase 2 feature routes
+    from routes.payroll import payroll_bp
+    from routes.okr import okr_bp
+    from routes.client import client_bp
+    from routes.reports import reports_bp
+    from routes.payment import payment_bp
+    
+    # Advanced feature routes
+    from routes.advanced import advanced_bp
+    
+    # Register core blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(employees_bp, url_prefix='/api/employees')
     app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
@@ -99,6 +116,16 @@ def create_app():
     app.register_blueprint(projects_bp, url_prefix='/api/projects')
     app.register_blueprint(tasks_bp, url_prefix='/api/tasks')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    
+    # Register Phase 2 feature blueprints
+    app.register_blueprint(payroll_bp, url_prefix='/api/payroll')
+    app.register_blueprint(okr_bp, url_prefix='/api/okr')
+    app.register_blueprint(client_bp, url_prefix='/api/client')
+    app.register_blueprint(reports_bp, url_prefix='/api/reports')
+    app.register_blueprint(payment_bp, url_prefix='/api/payment')
+    
+    # Register Advanced feature blueprints
+    app.register_blueprint(advanced_bp, url_prefix='/api/advanced')
     
     # Create error handlers
     @app.errorhandler(400)

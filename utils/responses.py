@@ -1,20 +1,27 @@
 from flask import jsonify
 
-def success_response(data, status_code=200):
+def success_response(message, data=None, status_code=200, meta=None):
     """
     Format a success response
     
     Args:
+        message: Success message
         data: The data to return
         status_code: HTTP status code
+        meta: Optional metadata
         
     Returns:
         JSON response with data and success flag
     """
     response = {
         "success": True,
+        "message": message,
         "data": data
     }
+    
+    if meta is not None:
+        response["meta"] = meta
+        
     return jsonify(response), status_code
 
 def error_response(message, status_code=400):

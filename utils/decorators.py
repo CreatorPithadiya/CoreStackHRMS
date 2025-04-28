@@ -128,3 +128,23 @@ def team_member_or_admin_required(employee_id_param='employee_id'):
             return error_response("You don't have permission to access this resource", 403)
         return wrapper
     return decorator
+
+def role_required(roles):
+    """Decorator to require specific roles for a route
+    
+    Args:
+        roles: A list of roles from the Role enum that are allowed to access this route
+    """
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            current_user_id = get_jwt_identity()
+            current_user = User.query.get(current_user_id)
+            
+            if not current_user or current_user.role not in roles:
+                allowed_roles = ', '.join([role.value for role in roles])
+                return error_response(f"Permission denied. Required roles: {allowed_roles}", 403)
+            
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
